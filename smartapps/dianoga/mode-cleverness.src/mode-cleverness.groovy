@@ -25,20 +25,47 @@ definition(
 
 
 preferences {
-	section("People") {
-		input "people", "capability.presenceSensor", title: "Who should we keep track of?", multiple: true
-	}
+	page(name: "settings")
+}
+
+def settings() {
+	dynamicPage(name: "settings", title: "Settings", install: true, uninstall: true) {
+        def actions = location.helloHome?.getPhrases()*.label
+		if (actions) actions.sort()
     
-    section("Modes when present") {
-    	input "presentDay", "mode", title: "Day"
-        input "presentEvening", "mode", title: "Evening"
-        input "presentNight", "mode", title: "Night"
-    }
-    
-    section("Modes when away") {
-    	input "awayDay", "mode", title: "Day"
-        input "awayEvening", "mode", title: "Evening"
-        input "awayNight", "mode", title: "Night"
+        section("People") {
+            input "people", "capability.presenceSensor", title: "Who should we keep track of?", multiple: true
+        }
+
+        section("Present/Day") {
+            input "presentDayMode", "mode", title: "Mode"
+            if (actions) input "presentDayAction", "enum", title: "Action", options: actions
+        }
+        
+        section("Present/Evening") {
+            input "presentEveningMode", "mode", title: "Mode"
+            if (actions) input "presentEveningAction", "enum", title: "Action", options: actions
+		}
+        
+        section("Present/Night") {
+            input "presentNightMode", "mode", title: "Mode"
+            if (actions) input "presentNightAction", "enum", title: "Action", options: actions
+        }
+        
+        section("Away/Day") {
+            input "awayDayMode", "mode", title: "Mode"
+            if (actions) input "awayDayAction", "enum", title: "Action", options: actions
+        }
+        
+        section("Away/Evening") {
+            input "awayEveningMode", "mode", title: "Mode"
+            if (actions) input "awayEveningAction", "enum", title: "Action", options: actions
+		}
+        
+        section("Away/Night") {
+            input "awayNightMode", "mode", title: "Mode"
+            if (actions) input "awayNightAction", "enum", title: "Action", options: actions
+        }
     }
 }
 
@@ -65,26 +92,35 @@ def presenceHandler(event) {
     def s = getSunriseAndSunset()
     def now = new Date()
     def tenpm = timeToday('22:00', location.timeZone)
+    
     String mode
-
+    String action
+    
     if(present) {
         if(now.before(s.sunrise) || now.after(tenpm)) {
-            mode = settings.presentNight
+            mode = settings.presentNightMode
+            action = settings.presentNightAction
         } else if(now.after(s.sunset)) {
-            mode = settings.presentEvening
+            mode = settings.presentEveningMode
+            action = settings.presentEveningAction
         } else {
-            mode = settings.presentDay
+            mode = settings.presentDayMode
+            action = settings.presentDayAction
         }
     } else {
         if(now.before(s.sunrise) || now.after(tenpm)) {
-            mode = settings.awayNight
+            mode = settings.awayNightMode
+            action = settings.awayNightAction
         } else if(now.after(s.sunset)) {
-            mode = settings.awayEvening
+            mode = settings.awayEveningMode
+            action = settings.awayEveningAction
         } else {
-            mode = settings.awayDay
+            mode = settings.awayDayMode
+            action = settings.awayDayAction
         }
     }
 
-    log.debug "Changing mode to ${mode}"
+    log.debug "Mode: ${mode} | Action: ${action}"
     location.setMode(mode)
+    if(action) location.helloHome?.execute(action)
 }
